@@ -1,0 +1,81 @@
+name: CI/CD Pipeline for Backend
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: "ap-south-1"
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  AWS_ECR_REPO_NAME: "mern-backend"
+  REPOSITORY_URI: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.AWS_ECR_REPO_NAME }}"
+  GIT_USER_NAME: "patilkaran197"
+  GIT_REPO_NAME: "MERN-Application-Deployment"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+
+      - name: Set up SonarQube Scanner
+        uses: sonarsource/sonarqube-scan-action@v1.3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: SonarQube Analysis
+        run: |
+          cd backend
+          sonar-scanner -Dsonar.projectName=mern-backend -Dsonar.projectKey=mern-backend
+
+      - name: Quality Gate Check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        with:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: OWASP Dependency-Check
+        run: |
+          cd backend
+          dependency-check.sh --scan ./ --disableYarnAudit --disableNodeAudit
+
+      - name: Trivy File Scan
+        run: |
+          cd backend
+          trivy fs . > trivyfs.txt
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Docker Build and Push
+        run: |
+          cd backend
+          docker build -t ${{ env.AWS_ECR_REPO_NAME }} .
+          docker tag ${{ env.AWS_ECR_REPO_NAME }}:latest ${{ env.REPOSITORY_URI }}:${{ github.run_number }}
+          docker push ${{ env.REPOSITORY_URI }}:${{ github.run_number }}
+
+      - name: Trivy Image Scan
+        run: |
+          trivy image ${{ env.REPOSITORY_URI }}:${{ github.run_number }} > trivyimage.txt
+
+      - name: Update Backend Deployment in Helm Chart
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.email "patilkaran1997@gmail.com"
+          git config user.name "${{ env.GIT_USER_NAME }}"
+          cd helm-charts/mern-app/values.yaml
+          sed -i "s/backend:.*$/backend:${{ github.run_number }}/" values.yaml
+          git add values.yaml
+          git commit -m "Update Backend Image Tag to ${{ github.run_number }}"
+          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ env.GIT_USER_NAME }}/${{ env.GIT_REPO_NAME }} HEAD:main
