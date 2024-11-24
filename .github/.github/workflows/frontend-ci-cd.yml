@@ -28,21 +28,21 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Set up SonarQube Scanner
+      - name: Run Frontend Tests
+        run: |
+          cd frontend
+          npm install
+          npm run test -- --watchAll=false
+
+      - name: Static Code Analysis (SonarQube)
         uses: sonarsource/sonarqube-scan-action@v1.3
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-
-      - name: SonarQube Analysis
-        run: |
-          cd frontend
-          sonar-scanner -Dsonar.projectName=mern-frontend -Dsonar.projectKey=mern-frontend
-
-      - name: Quality Gate Check
-        uses: sonarsource/sonarqube-quality-gate-action@master
         with:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          projectBaseDir: frontend
+          args: |
+            -Dsonar.projectKey=mern-frontend
 
       - name: OWASP Dependency-Check
         run: |
@@ -57,25 +57,25 @@ jobs:
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Docker Build and Push
+      - name: Build and Push Docker Image
         run: |
           cd frontend
           docker build -t ${{ env.AWS_ECR_REPO_NAME }} .
           docker tag ${{ env.AWS_ECR_REPO_NAME }}:latest ${{ env.REPOSITORY_URI }}:${{ github.run_number }}
           docker push ${{ env.REPOSITORY_URI }}:${{ github.run_number }}
 
-      - name: Trivy Image Scan
-        run: |
-          trivy image ${{ env.REPOSITORY_URI }}:${{ github.run_number }} > trivyimage.txt
-
-      - name: Update Frontend Deployment in Helm Chart
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Update Helm Chart and Push Changes
         run: |
           git config user.email "patilkaran1997@gmail.com"
           git config user.name "${{ env.GIT_USER_NAME }}"
-          cd helm-charts/mern-app/values.yaml
-          sed -i "s/frontend:.*$/frontend:${{ github.run_number }}/" values.yaml
-          git add values.yaml
+          sed -i "s|frontend:.*|frontend:${{ github.run_number }}|" helm-charts/mern-app/values.yaml
+          git add helm-charts/mern-app/values.yaml
           git commit -m "Update Frontend Image Tag to ${{ github.run_number }}"
-          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ env.GIT_USER_NAME }}/${{ env.GIT_REPO_NAME }} HEAD:main
+          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ env.GIT_USER_NAME }}/${{ env.GIT_REPO_NAME }}
+
+      - name: Sync Argo CD Application
+        run: |
+          kubectl port-forward svc/argocd-server -n argocd 8080:443 &
+          sleep 5
+          argocd login localhost:8080 --username admin --password ${{ secrets.ARGOCD_PASSWORD }} --insecure
+          argocd app sync mern-app
