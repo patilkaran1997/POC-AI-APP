@@ -1,5 +1,19 @@
-backend:
-  image: "<replace-with-ecr-url>/mern-backend:latest"
+replicaCount: 2
 
 frontend:
-  image: "<replace-with-ecr-url>/mern-frontend:latest"
+  image:
+    repository: <frontend-ecr-repo>
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: LoadBalancer
+    port: 80
+
+backend:
+  image:
+    repository: <backend-ecr-repo>
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5000
