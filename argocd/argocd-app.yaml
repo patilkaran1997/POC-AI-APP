@@ -6,11 +6,11 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/<your-repo>
+    repoURL: 'https://github.com/<username>/<repository>'
     targetRevision: main
     path: helm-charts/mern-app
   destination:
-    server: https://kubernetes.default.svc
+    server: 'https://kubernetes.default.svc'
     namespace: default
   syncPolicy:
     automated:
