@@ -1,0 +1,5 @@
+backend:
+  image: "<replace-with-ecr-url>/mern-backend:latest"
+
+frontend:
+  image: "<replace-with-ecr-url>/mern-frontend:latest"
