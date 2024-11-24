@@ -1,40 +1,39 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mern-backend
+  name: mern-app-frontend
 spec:
-  replicas: 2
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: mern-backend
+      app: mern-app-frontend
   template:
     metadata:
       labels:
-        app: mern-backend
+        app: mern-app-frontend
     spec:
       containers:
-        - name: backend
-          image: {{ .Values.backend.image }}
-          ports:
-            - containerPort: 5000
-
+      - name: frontend
+        image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+        ports:
+        - containerPort: 80
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mern-frontend
+  name: mern-app-backend
 spec:
-  replicas: 2
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: mern-frontend
+      app: mern-app-backend
   template:
     metadata:
       labels:
-        app: mern-frontend
+        app: mern-app-backend
     spec:
       containers:
-        - name: frontend
-          image: {{ .Values.frontend.image }}
-          ports:
-            - containerPort: 3000
+      - name: backend
+        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+        ports:
+        - containerPort: 5000
