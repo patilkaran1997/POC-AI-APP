@@ -3,6 +3,13 @@ variable "aws_region" {
   default     = "ap-south-1"
 }
 
+variable "aws_account_id" {
+  description = "The AWS Account ID"
+  type        = string
+  default     = "474668403275" 
+}
+
+
 variable "vpc_cidr" {
   description = "VPC CIDR"
   default     = "10.0.0.0/16"
