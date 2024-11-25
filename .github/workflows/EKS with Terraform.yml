@@ -8,7 +8,7 @@ on:
 env:
   AWS_REGION: "ap-south-1"
   TERRAFORM_VERSION: "1.5.7"
-  TERRAFORM_WORKING_DIR: "./terraform"
+  TERRAFORM_WORKING_DIR: "Terraform"
 
 jobs:
   create-eks:
