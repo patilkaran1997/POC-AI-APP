@@ -11,7 +11,7 @@ env:
   AWS_ECR_REPO_NAME: "mern-backend"
   REPOSITORY_URI: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.AWS_ECR_REPO_NAME }}"
   GIT_USER_NAME: "patilkaran197"
-  GIT_REPO_NAME: "MERN-Application-Deployment"
+  GIT_REPO_NAME: "POC-AI-APP"
 
 jobs:
   build:
