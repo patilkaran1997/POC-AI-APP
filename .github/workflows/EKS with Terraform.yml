@@ -6,6 +6,7 @@ on:
       - main
 
 env:
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} 
   AWS_REGION: "ap-south-1"
   TERRAFORM_VERSION: "1.5.7"
   TERRAFORM_WORKING_DIR: "Terraform"
