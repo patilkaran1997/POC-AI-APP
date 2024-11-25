@@ -13,6 +13,7 @@ env:
 jobs:
   create-eks:
     runs-on: ubuntu-latest
+    environment: main  # Reference the specific environment where secrets are stored
 
     steps:
       # Step 1: Checkout the code
