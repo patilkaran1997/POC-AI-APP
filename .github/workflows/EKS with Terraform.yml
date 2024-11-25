@@ -19,14 +19,22 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Install AWS CLI
-      - name: Install AWS CLI
+      # Step 2: Install or Update AWS CLI
+      - name: Install or Update AWS CLI
         run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install
+          if ! aws --version; then
+            echo "AWS CLI not found. Installing..."
+            sudo apt-get update
+            sudo apt-get install -y unzip
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+          else
+            echo "AWS CLI already installed. Updating..."
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install --update
+          fi
           aws --version
 
       # Step 3: Configure AWS Credentials
