@@ -1,9 +1,10 @@
 name: Create EKS Cluster
 
 on:
-  push:
+  push:  # Automatically run on pushes to the main branch
     branches:
       - main
+  workflow_dispatch:  # Manual trigger for the whole workflow
 
 env:
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} 
@@ -68,7 +69,14 @@ jobs:
         run: terraform plan -out=tfplan
         working-directory: ${{ env.TERRAFORM_WORKING_DIR }}
 
-      # Step 8: Terraform Apply
+      # Step 8: Terraform Apply 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
         working-directory: ${{ env.TERRAFORM_WORKING_DIR }}
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'  # Run on manual trigger or main branch push
+
+      # Step 9: Terraform Distroy 
+      - name: Terraform Distroy
+        run: terraform distory -auto-approve tfplan
+        working-directory: ${{ env.TERRAFORM_WORKING_DIR }}
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'  # Run on manual trigger or main branch push
