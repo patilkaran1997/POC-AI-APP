@@ -29,7 +29,7 @@ resource "kubernetes_deployment" "mern_app" {
         container {
           image = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/mern-backend:latest"
           name  = "mern-backend"
-          ports {
+          port  {
             container_port = 5000
           }
         }
