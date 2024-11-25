@@ -1,0 +1,54 @@
+name: Create EKS Cluster
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: "ap-south-1"
+  TERRAFORM_VERSION: "1.5.7"
+  TERRAFORM_WORKING_DIR: "./terraform"
+
+jobs:
+  create-eks:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Setup AWS CLI
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Step 3: Setup Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      # Step 4: Terraform Init
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.TERRAFORM_WORKING_DIR }}
+
+      # Step 5: Terraform Validate
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ${{ env.TERRAFORM_WORKING_DIR }}
+
+      # Step 6: Terraform Plan
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+        working-directory: ${{ env.TERRAFORM_WORKING_DIR }}
+
+      # Step 7: Terraform Apply
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+        working-directory: ${{ env.TERRAFORM_WORKING_DIR }}
