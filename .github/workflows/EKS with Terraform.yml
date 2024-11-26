@@ -14,7 +14,7 @@ env:
 
 jobs:
   create-eks:
-    runs-on: github-runner
+    runs-on: self-hosted
     environment: main  # Reference the specific environment where secrets are stored
 
     steps:
@@ -22,23 +22,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # Step 2: Install or Update AWS CLI
-      - name: Install or Update AWS CLI
-        run: |
-          if ! aws --version; then
-            echo "AWS CLI not found. Installing..."
-            sudo apt-get update
-            sudo apt-get install -y unzip
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install
-          else
-            echo "AWS CLI already installed. Updating..."
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install --update
-          fi
-          aws --version
 
       # Step 3: Configure AWS Credentials
       - name: Configure AWS Credentials
