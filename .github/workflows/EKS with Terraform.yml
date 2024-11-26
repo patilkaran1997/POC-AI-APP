@@ -14,7 +14,7 @@ env:
 
 jobs:
   create-eks:
-    runs-on: ubuntu-latest
+    runs-on: github-runner
     environment: main  # Reference the specific environment where secrets are stored
 
     steps:
