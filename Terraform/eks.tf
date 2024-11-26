@@ -1,10 +1,9 @@
-# Ensure the EKS Cluster is created with subnets from multiple AZs
+# EKS Cluster
 resource "aws_eks_cluster" "eks_cluster" {
   name     = var.eks_cluster_name
   role_arn = aws_iam_role.eks_cluster_role.arn
 
   vpc_config {
-    # Make sure to use both public and private subnets from multiple AZs
     subnet_ids = concat(
       aws_subnet.public[*].id,   # Public subnets
       aws_subnet.private[*].id   # Private subnets
@@ -14,12 +13,12 @@ resource "aws_eks_cluster" "eks_cluster" {
   depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy]
 }
 
-# EKS Node Group - Use public subnets for worker nodes with Public IP assignment
+# EKS Node Group - Worker nodes in public subnets
 resource "aws_eks_node_group" "eks_nodes" {
   cluster_name    = aws_eks_cluster.eks_cluster.name
   node_group_name = "mern-node-group"
   node_role_arn   = aws_iam_role.eks_node_role.arn
-  subnet_ids      = aws_subnet.public[*].id  # Use public subnets for worker nodes
+  subnet_ids      = aws_subnet.public[*].id  # Public subnets only
 
   scaling_config {
     desired_size = var.desired_node_count
@@ -28,12 +27,9 @@ resource "aws_eks_node_group" "eks_nodes" {
   }
 
   instance_types = [var.node_instance_type]
-
-  # Ensure the worker nodes get public IPs
-  associate_public_ip_address = true  # Enable public IP assignment for nodes
 }
 
-# IAM role for the EKS Cluster
+# IAM role for EKS Cluster
 resource "aws_iam_role" "eks_cluster_role" {
   name = "eks-cluster-role"
   assume_role_policy = jsonencode({
@@ -48,7 +44,7 @@ resource "aws_iam_role" "eks_cluster_role" {
   })
 }
 
-# Attach the EKS Cluster Policy to the role
+# Attach the EKS Cluster Policy
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
   role       = aws_iam_role.eks_cluster_role.name
@@ -69,18 +65,27 @@ resource "aws_iam_role" "eks_node_role" {
   })
 }
 
-# Attach the Worker Node Policy to the role
+# Attach the Worker Node Policies
 resource "aws_iam_role_policy_attachment" "eks_worker_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
   role       = aws_iam_role.eks_node_role.name
 }
 
-# Internet Gateway for Public Subnet (Required for Public IP assignment)
+resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+  role       = aws_iam_role.eks_node_role.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_ecr_readonly" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  role       = aws_iam_role.eks_node_role.name
+}
+
+# Internet Gateway and Route Table
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 }
 
-# Route table for public subnet that routes 0.0.0.0/0 to the Internet Gateway
 resource "aws_route_table" "public_route_table" {
   vpc_id = aws_vpc.main.id
   route {
@@ -89,10 +94,8 @@ resource "aws_route_table" "public_route_table" {
   }
 }
 
-# Associate the route table with public subnets
 resource "aws_route_table_association" "public_route_table_assoc" {
   count          = length(aws_subnet.public)
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public_route_table.id
 }
-
