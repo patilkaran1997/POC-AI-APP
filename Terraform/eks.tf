@@ -4,7 +4,7 @@ resource "aws_eks_cluster" "eks_cluster" {
   role_arn = aws_iam_role.eks_cluster_role.arn
 
   vpc_config {
-    # Make sure to use both public and private subnets from multiple AZs
+    # Use both public and private subnets from multiple AZs
     subnet_ids = concat(
       aws_subnet.public[*].id,   # Public subnets
       aws_subnet.private[*].id   # Private subnets
@@ -72,7 +72,7 @@ resource "aws_iam_role_policy_attachment" "eks_worker_policy" {
   role       = aws_iam_role.eks_node_role.name
 }
 
-# Use data source to find existing IGW
+# Fetch existing Internet Gateway for the VPC
 data "aws_internet_gateway" "existing" {
   filter {
     name   = "attachment.vpc-id"
@@ -80,7 +80,7 @@ data "aws_internet_gateway" "existing" {
   }
 }
 
-# Create a new Internet Gateway only if none exists
+# Create a new Internet Gateway if none exists
 resource "aws_internet_gateway" "igw" {
   count = length(data.aws_internet_gateway.existing.id) == 0 ? 1 : 0
   vpc_id = aws_vpc.main.id
@@ -90,16 +90,18 @@ resource "aws_internet_gateway" "igw" {
   }
 }
 
-# Route table for public subnet that routes 0.0.0.0/0 to the Internet Gateway
+# Get the IGW ID (existing or new)
+locals {
+  igw_id = length(data.aws_internet_gateway.existing.id) > 0 ? data.aws_internet_gateway.existing.id : aws_internet_gateway.igw[0].id
+}
+
+# Public Route Table
 resource "aws_route_table" "public_route_table" {
   vpc_id = aws_vpc.main.id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = coalesce(
-      data.aws_internet_gateway.existing.id,
-      aws_internet_gateway.igw[0].id
-    )  # Use existing IGW or new one
+    gateway_id = local.igw_id
   }
 
   tags = {
